@@ -6,6 +6,7 @@ import os
 import imageio.v2 as imageio
 import AAA_Configs
 import tifffile
+import numpy as np
 
 class MyData(Dataset):
     def __init__(self, im_path1, im_path2, lb_path):
@@ -51,6 +52,16 @@ class MyData(Dataset):
         return im1, im2, lb0, lb1, lb2, lb3
 
     def transform(self, img1, img2, label):
+        # Convert numpy arrays to float32 for proper ToTensor conversion
+        if isinstance(img1, np.ndarray):
+            img1 = img1.astype(np.float32)
+            if img1.max() > 1.0:
+                img1 = img1 / 255.0
+        if isinstance(img2, np.ndarray):
+            img2 = img2.astype(np.float32)
+            if img2.max() > 1.0:
+                img2 = img2 / 255.0
+
         transform_img = transforms.Compose([transforms.ToTensor()])
         transform_img_4 = transforms.Compose([transforms.Resize((64, 64), Image.NEAREST), transforms.ToTensor()])
         transform_img_8 = transforms.Compose([transforms.Resize((32, 32), Image.NEAREST), transforms.ToTensor()])
@@ -96,6 +107,16 @@ class MyTestData(Dataset):
         im1, im2 = self.transform(img1, img2)
         return im1, im2, label_file
     def transform(self, img1, img2):
+        # Convert numpy arrays to float32 for proper ToTensor conversion
+        if isinstance(img1, np.ndarray):
+            img1 = img1.astype(np.float32)
+            if img1.max() > 1.0:
+                img1 = img1 / 255.0
+        if isinstance(img2, np.ndarray):
+            img2 = img2.astype(np.float32)
+            if img2.max() > 1.0:
+                img2 = img2 / 255.0
+
         transform_img_2 = transforms.Compose([transforms.ToTensor(), transforms.Normalize(AAA_Configs.normalization_mean, AAA_Configs.normalization_std)])
         im1 = transform_img_2(img1)
         im2 = transform_img_2(img2)
