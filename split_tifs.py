@@ -51,14 +51,14 @@ def split_tif(input_path, output_before_path, output_after_path):
         if src.count < 13:
             raise ValueError(f"Input file has only {src.count} bands, expected at least 13")
 
-        # Update metadata for 6-band output
-        meta.update(count=6)
+        # Update metadata for 6-band output with float32 dtype
+        meta.update(count=6, dtype='float32')
 
-        # Read before bands (1-6)
-        before_data = src.read(BEFORE_BANDS)
+        # Read before bands (1-6) and convert to float32
+        before_data = src.read(BEFORE_BANDS).astype('float32')
 
-        # Read after bands (8-13)
-        after_data = src.read(AFTER_BANDS)
+        # Read after bands (8-13) and convert to float32
+        after_data = src.read(AFTER_BANDS).astype('float32')
 
         # Write before image
         with rasterio.open(output_before_path, 'w', **meta) as dst:
