@@ -20,11 +20,11 @@ import rasterio
 # ============================================================================
 
 # Input directory containing 16-band TIF files
-INPUT_DIR = "/Users/domwelsh/BACDM/chips_test"
+INPUT_DIR = "/Users/domwelsh/BACDM_root/BACDM/chips_test"
 
 # Output directories for before and after images
-OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM/test_data/before"
-OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM/test_data/after"
+OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_float32"
+OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_float32"
 
 # Band indices to extract
 BEFORE_BANDS = [1, 2, 3, 4, 5, 6]  # Bands 1-6 (rasterio uses 1-based indexing)
