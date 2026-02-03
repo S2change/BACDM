@@ -23,8 +23,8 @@ import rasterio
 INPUT_DIR = "/Users/domwelsh/BACDM_root/BACDM/chips_test"
 
 # Output directories for before and after images
-OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_float32"
-OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_float32"
+OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_uint8"
+OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_uint8"
 
 # Band indices to extract
 BEFORE_BANDS = [1, 2, 3, 4, 5, 6]  # Bands 1-6 (rasterio uses 1-based indexing)
@@ -51,14 +51,26 @@ def split_tif(input_path, output_before_path, output_after_path):
         if src.count < 13:
             raise ValueError(f"Input file has only {src.count} bands, expected at least 13")
 
-        # Update metadata for 6-band output with float32 dtype
-        meta.update(count=6, dtype='float32')
+        # Update metadata for 6-band output with uint8 dtype and nodata value
+        meta.update(count=6, dtype='uint8', nodata=255)
 
-        # Read before bands (1-6) and convert to float32
-        before_data = src.read(BEFORE_BANDS).astype('float32')
+        # Read before bands (1-6) and convert from 0-10000 range to 0-255 uint8
+        before_data = src.read(BEFORE_BANDS)
+        # Create mask for nodata pixels (value 65535)
+        nodata_mask = before_data == 65535
+        # Scale data from 0-10000 to 0-255
+        before_data = (before_data / 10000.0 * 255.0).clip(0, 255).astype('uint8')
+        # Set nodata pixels to 255
+        before_data[nodata_mask] = 255
 
-        # Read after bands (8-13) and convert to float32
-        after_data = src.read(AFTER_BANDS).astype('float32')
+        # Read after bands (8-13) and convert from 0-10000 range to 0-255 uint8
+        after_data = src.read(AFTER_BANDS)
+        # Create mask for nodata pixels (value 65535)
+        nodata_mask = after_data == 65535
+        # Scale data from 0-10000 to 0-255
+        after_data = (after_data / 10000.0 * 255.0).clip(0, 255).astype('uint8')
+        # Set nodata pixels to 255
+        after_data[nodata_mask] = 255
 
         # Write before image
         with rasterio.open(output_before_path, 'w', **meta) as dst:
