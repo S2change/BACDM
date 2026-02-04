@@ -23,17 +23,18 @@ import rasterio
 INPUT_DIR = "/Users/domwelsh/BACDM_root/BACDM/chips_test"
 
 # Output directories for before and after images
-OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_uint8_reversed_minmax"
-OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_uint8_reversed_minmax"
+OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_uint8_reversed_minmax_perband"
+OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_uint8_reversed_minmax_perband"
 
 # Band indices to extract (reversed order for output to match BACDM data)
 BEFORE_BANDS = [6, 5, 4, 3, 2, 1]
 AFTER_BANDS = [13, 12, 11, 10, 9, 8]
 
-# Scaling method: "fixed" or "minmax"
+# Scaling method: "fixed", "minmax", or "minmax_perband"
 # - "fixed": Scale from 0-10000 range to 0-255
-# - "minmax": Scale from actual min-max values in the data to 0-255
-SCALING_METHOD = "minmax"  # Options: "fixed" or "minmax"
+# - "minmax": Scale from actual min-max values across all bands to 0-255
+# - "minmax_perband": Scale each band independently using its own min-max to 0-255
+SCALING_METHOD = "minmax_perband"  # Options: "fixed", "minmax", or "minmax_perband"
 
 # ============================================================================
 # PROCESSING
@@ -44,9 +45,9 @@ def scale_to_uint8(data, nodata_mask, scaling_method):
     Scale data to uint8 range (0-255).
 
     Args:
-        data: Input array to scale
+        data: Input array to scale (shape: bands, height, width)
         nodata_mask: Boolean mask indicating nodata pixels
-        scaling_method: "fixed" (0-10000 to 0-255) or "minmax" (min-max normalization)
+        scaling_method: "fixed", "minmax", or "minmax_perband"
 
     Returns:
         Scaled uint8 array
@@ -54,8 +55,9 @@ def scale_to_uint8(data, nodata_mask, scaling_method):
     if scaling_method == "fixed":
         # Fixed scaling: 0-10000 range to 0-255
         scaled = (data / 10000.0 * 255.0).clip(0, 255).astype('uint8')
+
     elif scaling_method == "minmax":
-        # Min-max scaling: normalize actual data range to 0-255
+        # Min-max scaling: normalize actual data range to 0-255 (all bands together)
         # Only consider non-nodata pixels for min/max calculation
         valid_data = data[~nodata_mask]
         if valid_data.size > 0:
@@ -70,8 +72,37 @@ def scale_to_uint8(data, nodata_mask, scaling_method):
         else:
             # All pixels are nodata
             scaled = data.astype('uint8')
+
+    elif scaling_method == "minmax_perband":
+        # Per-band min-max scaling: normalize each band independently
+        scaled = data.copy()
+        num_bands = data.shape[0]
+
+        for band_idx in range(num_bands):
+            band_data = data[band_idx]
+            band_nodata_mask = nodata_mask[band_idx]
+
+            # Get valid (non-nodata) pixels for this band
+            valid_pixels = band_data[~band_nodata_mask]
+
+            if valid_pixels.size > 0:
+                band_min = valid_pixels.min()
+                band_max = valid_pixels.max()
+
+                if band_max > band_min:
+                    # Scale this band to 0-255 range
+                    scaled[band_idx] = ((band_data - band_min) / (band_max - band_min) * 255.0).clip(0, 255).astype('uint8')
+                else:
+                    # All values in this band are the same
+                    scaled[band_idx] = (band_data * 0 + 127).astype('uint8')
+            else:
+                # All pixels in this band are nodata
+                scaled[band_idx] = band_data.astype('uint8')
+
+        scaled = scaled.astype('uint8')
+
     else:
-        raise ValueError(f"Unknown scaling method: {scaling_method}. Use 'fixed' or 'minmax'.")
+        raise ValueError(f"Unknown scaling method: {scaling_method}. Use 'fixed', 'minmax', or 'minmax_perband'.")
 
     # Set nodata pixels to 255
     scaled[nodata_mask] = 255
@@ -138,15 +169,17 @@ def main():
     """Process all TIF files in the input directory."""
 
     # Validate scaling method
-    if SCALING_METHOD not in ["fixed", "minmax"]:
-        print(f"Error: Invalid SCALING_METHOD '{SCALING_METHOD}'. Must be 'fixed' or 'minmax'.")
+    if SCALING_METHOD not in ["fixed", "minmax", "minmax_perband"]:
+        print(f"Error: Invalid SCALING_METHOD '{SCALING_METHOD}'. Must be 'fixed', 'minmax', or 'minmax_perband'.")
         return
 
     print(f"Scaling method: {SCALING_METHOD}")
     if SCALING_METHOD == "fixed":
         print("  - Using fixed scaling: 0-10000 → 0-255")
+    elif SCALING_METHOD == "minmax":
+        print("  - Using min-max normalization across all bands: [min, max] → 0-255")
     else:
-        print("  - Using min-max normalization: [min, max] → 0-255")
+        print("  - Using per-band min-max normalization: each band scaled independently to 0-255")
     print()
 
     # Create output directories if they don't exist
