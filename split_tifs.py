@@ -23,16 +23,60 @@ import rasterio
 INPUT_DIR = "/Users/domwelsh/BACDM_root/BACDM/chips_test"
 
 # Output directories for before and after images
-OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_uint8_reversed"
-OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_uint8_reversed"
+OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_uint8_reversed_minmax"
+OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_uint8_reversed_minmax"
 
 # Band indices to extract (reversed order for output to match BACDM data)
 BEFORE_BANDS = [6, 5, 4, 3, 2, 1]
 AFTER_BANDS = [13, 12, 11, 10, 9, 8]
 
+# Scaling method: "fixed" or "minmax"
+# - "fixed": Scale from 0-10000 range to 0-255
+# - "minmax": Scale from actual min-max values in the data to 0-255
+SCALING_METHOD = "minmax"  # Options: "fixed" or "minmax"
+
 # ============================================================================
 # PROCESSING
 # ============================================================================
+
+def scale_to_uint8(data, nodata_mask, scaling_method):
+    """
+    Scale data to uint8 range (0-255).
+
+    Args:
+        data: Input array to scale
+        nodata_mask: Boolean mask indicating nodata pixels
+        scaling_method: "fixed" (0-10000 to 0-255) or "minmax" (min-max normalization)
+
+    Returns:
+        Scaled uint8 array
+    """
+    if scaling_method == "fixed":
+        # Fixed scaling: 0-10000 range to 0-255
+        scaled = (data / 10000.0 * 255.0).clip(0, 255).astype('uint8')
+    elif scaling_method == "minmax":
+        # Min-max scaling: normalize actual data range to 0-255
+        # Only consider non-nodata pixels for min/max calculation
+        valid_data = data[~nodata_mask]
+        if valid_data.size > 0:
+            data_min = valid_data.min()
+            data_max = valid_data.max()
+            if data_max > data_min:
+                # Scale to 0-255 range
+                scaled = ((data - data_min) / (data_max - data_min) * 255.0).clip(0, 255).astype('uint8')
+            else:
+                # All values are the same, set to middle of range
+                scaled = (data * 0 + 127).astype('uint8')
+        else:
+            # All pixels are nodata
+            scaled = data.astype('uint8')
+    else:
+        raise ValueError(f"Unknown scaling method: {scaling_method}. Use 'fixed' or 'minmax'.")
+
+    # Set nodata pixels to 255
+    scaled[nodata_mask] = 255
+    return scaled
+
 
 def split_tif(input_path, output_before_path, output_after_path):
     """
@@ -54,23 +98,19 @@ def split_tif(input_path, output_before_path, output_after_path):
         # Update metadata for 6-band output with uint8 dtype and nodata value
         meta.update(count=6, dtype='uint8', nodata=255)
 
-        # Read before bands (1-6) and convert from 0-10000 range to 0-255 uint8
+        # Read before bands and convert to uint8
         before_data = src.read(BEFORE_BANDS)
         # Create mask for nodata pixels (value 65535)
-        nodata_mask = before_data == 65535
-        # Scale data from 0-10000 to 0-255
-        before_data = (before_data / 10000.0 * 255.0).clip(0, 255).astype('uint8')
-        # Set nodata pixels to 255
-        before_data[nodata_mask] = 255
+        before_nodata_mask = before_data == 65535
+        # Scale data to 0-255 uint8 range
+        before_data = scale_to_uint8(before_data, before_nodata_mask, SCALING_METHOD)
 
-        # Read after bands (8-13) and convert from 0-10000 range to 0-255 uint8
+        # Read after bands and convert to uint8
         after_data = src.read(AFTER_BANDS)
         # Create mask for nodata pixels (value 65535)
-        nodata_mask = after_data == 65535
-        # Scale data from 0-10000 to 0-255
-        after_data = (after_data / 10000.0 * 255.0).clip(0, 255).astype('uint8')
-        # Set nodata pixels to 255
-        after_data[nodata_mask] = 255
+        after_nodata_mask = after_data == 65535
+        # Scale data to 0-255 uint8 range
+        after_data = scale_to_uint8(after_data, after_nodata_mask, SCALING_METHOD)
 
         # Write before image
         with rasterio.open(output_before_path, 'w', **meta) as dst:
@@ -96,6 +136,18 @@ def split_tif(input_path, output_before_path, output_after_path):
 
 def main():
     """Process all TIF files in the input directory."""
+
+    # Validate scaling method
+    if SCALING_METHOD not in ["fixed", "minmax"]:
+        print(f"Error: Invalid SCALING_METHOD '{SCALING_METHOD}'. Must be 'fixed' or 'minmax'.")
+        return
+
+    print(f"Scaling method: {SCALING_METHOD}")
+    if SCALING_METHOD == "fixed":
+        print("  - Using fixed scaling: 0-10000 → 0-255")
+    else:
+        print("  - Using min-max normalization: [min, max] → 0-255")
+    print()
 
     # Create output directories if they don't exist
     os.makedirs(OUTPUT_BEFORE_DIR, exist_ok=True)
