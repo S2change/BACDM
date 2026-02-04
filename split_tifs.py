@@ -23,12 +23,12 @@ import rasterio
 INPUT_DIR = "/Users/domwelsh/BACDM_root/BACDM/chips_test"
 
 # Output directories for before and after images
-OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_uint8"
-OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_uint8"
+OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_uint8_reversed"
+OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_uint8_reversed"
 
-# Band indices to extract
-BEFORE_BANDS = [1, 2, 3, 4, 5, 6]  # Bands 1-6 (rasterio uses 1-based indexing)
-AFTER_BANDS = [8, 9, 10, 11, 12, 13]  # Bands 8-13
+# Band indices to extract (reversed order for output to match BACDM data)
+BEFORE_BANDS = [6, 5, 4, 3, 2, 1]
+AFTER_BANDS = [13, 12, 11, 10, 9, 8]
 
 # ============================================================================
 # PROCESSING
