@@ -13,6 +13,7 @@ Output: Two 6-band GeoTIFFs per input file (before and after)
 
 import os
 import glob
+import numpy as np
 import rasterio
 
 # ============================================================================
@@ -20,21 +21,26 @@ import rasterio
 # ============================================================================
 
 # Input directory containing 16-band TIF files
-INPUT_DIR = "/Users/domwelsh/BACDM_root/BACDM/chips_test"
+INPUT_DIR = "/Users/domwelsh/BACDM_root/BACDM/chips_test/TQG_burn_area"
 
 # Output directories for before and after images
-OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_uint8_reversed_minmax_perband"
-OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_uint8_reversed_minmax_perband"
+OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_TQG_burn_area_percentile_perband"
+OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_TQG_burn_area_percentile_perband"
 
 # Band indices to extract (reversed order for output to match BACDM data)
 BEFORE_BANDS = [6, 5, 4, 3, 2, 1]
 AFTER_BANDS = [13, 12, 11, 10, 9, 8]
 
-# Scaling method: "fixed", "minmax", or "minmax_perband"
+# Scaling method: "fixed", "minmax", "minmax_perband", or "percentile_perband"
 # - "fixed": Scale from 0-10000 range to 0-255
 # - "minmax": Scale from actual min-max values across all bands to 0-255
 # - "minmax_perband": Scale each band independently using its own min-max to 0-255
-SCALING_METHOD = "minmax_perband"  # Options: "fixed", "minmax", or "minmax_perband"
+# - "percentile_perband": Clip each band at 1.5% and 98.5% percentiles, then scale to 0-255
+SCALING_METHOD = "percentile_perband"  # Options: "fixed", "minmax", "minmax_perband", or "percentile_perband"
+
+# Percentile clipping thresholds (only used when SCALING_METHOD is "percentile_perband")
+PERCENTILE_LOW = 1.5   # Lower percentile for clipping
+PERCENTILE_HIGH = 98.5 # Upper percentile for clipping
 
 # ============================================================================
 # PROCESSING
@@ -47,7 +53,7 @@ def scale_to_uint8(data, nodata_mask, scaling_method):
     Args:
         data: Input array to scale (shape: bands, height, width)
         nodata_mask: Boolean mask indicating nodata pixels
-        scaling_method: "fixed", "minmax", or "minmax_perband"
+        scaling_method: "fixed", "minmax", "minmax_perband", or "percentile_perband"
 
     Returns:
         Scaled uint8 array
@@ -101,8 +107,39 @@ def scale_to_uint8(data, nodata_mask, scaling_method):
 
         scaled = scaled.astype('uint8')
 
+    elif scaling_method == "percentile_perband":
+        # Per-band percentile clipping and scaling
+        scaled = data.copy()
+        num_bands = data.shape[0]
+
+        for band_idx in range(num_bands):
+            band_data = data[band_idx]
+            band_nodata_mask = nodata_mask[band_idx]
+
+            # Get valid (non-nodata) pixels for this band
+            valid_pixels = band_data[~band_nodata_mask]
+
+            if valid_pixels.size > 0:
+                # Calculate percentiles from valid pixels only
+                p_low = np.percentile(valid_pixels, PERCENTILE_LOW)
+                p_high = np.percentile(valid_pixels, PERCENTILE_HIGH)
+
+                if p_high > p_low:
+                    # Clip values to percentile range
+                    clipped = band_data.clip(p_low, p_high)
+                    # Scale to 0-255 range
+                    scaled[band_idx] = ((clipped - p_low) / (p_high - p_low) * 255.0).clip(0, 255).astype('uint8')
+                else:
+                    # All values in percentile range are the same
+                    scaled[band_idx] = (band_data * 0 + 127).astype('uint8')
+            else:
+                # All pixels in this band are nodata
+                scaled[band_idx] = band_data.astype('uint8')
+
+        scaled = scaled.astype('uint8')
+
     else:
-        raise ValueError(f"Unknown scaling method: {scaling_method}. Use 'fixed', 'minmax', or 'minmax_perband'.")
+        raise ValueError(f"Unknown scaling method: {scaling_method}. Use 'fixed', 'minmax', 'minmax_perband', or 'percentile_perband'.")
 
     # Set nodata pixels to 255
     scaled[nodata_mask] = 255
@@ -169,8 +206,8 @@ def main():
     """Process all TIF files in the input directory."""
 
     # Validate scaling method
-    if SCALING_METHOD not in ["fixed", "minmax", "minmax_perband"]:
-        print(f"Error: Invalid SCALING_METHOD '{SCALING_METHOD}'. Must be 'fixed', 'minmax', or 'minmax_perband'.")
+    if SCALING_METHOD not in ["fixed", "minmax", "minmax_perband", "percentile_perband"]:
+        print(f"Error: Invalid SCALING_METHOD '{SCALING_METHOD}'. Must be 'fixed', 'minmax', 'minmax_perband', or 'percentile_perband'.")
         return
 
     print(f"Scaling method: {SCALING_METHOD}")
@@ -178,8 +215,10 @@ def main():
         print("  - Using fixed scaling: 0-10000 → 0-255")
     elif SCALING_METHOD == "minmax":
         print("  - Using min-max normalization across all bands: [min, max] → 0-255")
-    else:
+    elif SCALING_METHOD == "minmax_perband":
         print("  - Using per-band min-max normalization: each band scaled independently to 0-255")
+    else:
+        print(f"  - Using per-band percentile clipping: clip at {PERCENTILE_LOW}% and {PERCENTILE_HIGH}%, then scale to 0-255")
     print()
 
     # Create output directories if they don't exist
