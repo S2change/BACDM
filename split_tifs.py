@@ -24,8 +24,8 @@ import rasterio
 INPUT_DIR = "/Users/domwelsh/BACDM_root/BACDM/chips_test/TQG_burn_area"
 
 # Output directories for before and after images
-OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_TQG_burn_area_percentile_perband"
-OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_TQG_burn_area_percentile_perband"
+OUTPUT_BEFORE_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/before_TQG_burn_area_minmax_perband"
+OUTPUT_AFTER_DIR = "/Users/domwelsh/BACDM_root/BACDM/test_data/after_TQG_burn_area_minmax_perband"
 
 # Band indices to extract (reversed order for output to match BACDM data)
 BEFORE_BANDS = [6, 5, 4, 3, 2, 1]
@@ -36,7 +36,7 @@ AFTER_BANDS = [13, 12, 11, 10, 9, 8]
 # - "minmax": Scale from actual min-max values across all bands to 0-255
 # - "minmax_perband": Scale each band independently using its own min-max to 0-255
 # - "percentile_perband": Clip each band at 1.5% and 98.5% percentiles, then scale to 0-255
-SCALING_METHOD = "percentile_perband"  # Options: "fixed", "minmax", "minmax_perband", or "percentile_perband"
+SCALING_METHOD = "minmax_perband"  # Options: "fixed", "minmax", "minmax_perband", or "percentile_perband"
 
 # Percentile clipping thresholds (only used when SCALING_METHOD is "percentile_perband")
 PERCENTILE_LOW = 1.5   # Lower percentile for clipping
