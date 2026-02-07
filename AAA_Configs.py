@@ -22,7 +22,7 @@ Train_weight_path = "G:/BACDM/logs/" # 权重保存的路径
 Train_pretrained_path = None
 
 
-Test_im_pathA = r"C:\Users\domwe\Documents\thesis_work\BACDM\test_data\before_uint8_reversed_minmax_perband"
-Test_im_pathB = r"C:\Users\domwe\Documents\thesis_work\BACDM\test_data\after_uint8_reversed_minmax_perband"
-Test_det_path = r"C:\Users\domwe\Documents\thesis_work\BACDM\test_data\predictions_uint8_reversed_minmax_perband"
+Test_im_pathA = r"C:\Users\domwe\Documents\thesis_work\BACDM\test_data\before_TQG_burn_area_percentile_perband"
+Test_im_pathB = r"C:\Users\domwe\Documents\thesis_work\BACDM\test_data\after_TQG_burn_area_percentile_perband"
+Test_det_path = r"C:\Users\domwe\Documents\thesis_work\BACDM\test_data\predictions_TQG_burn_area_percentile_perband"
 Test_weight_path = r"C:\Users\domwe\Documents\thesis_work\logs\B12118A432.pth"
