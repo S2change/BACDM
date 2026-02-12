@@ -14,7 +14,6 @@ To test locally the results of BADCM over a collection of 16-band chips, and for
   Test_det_path = r".\test_data\predictions_TNF_BA_20241154225"
   # ICNF burned areas for tests:
   shp_path = r'H:\ref_datasets\BDR_ICNF\ardida_2024\ardida_2024.shp'
-  layer_name = 'Ardida 2024'
   ```
 2. Execute in QGIS `qgis_read_area_ardida_ICNF.py`. Set `CLEAR=True` to clear the current QGIS project. The legend for the burned area indicates the month and the labels indicate the day.
 3. In QGIS, select manualy a burned area polygon for the local analysis
