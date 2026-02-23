@@ -24,7 +24,7 @@ To test locally the results of BADCM over a collection of 16-band chips, and for
 3. In QGIS, execute `qgis_add_chips_boundaries_to_project.py` to create a layer that shows the locations of the available chips available in `chip_source_folder`; 
 4. In QGIS, select manually a reference polygon (e.g. some burned area) for the local analysis at a location where chips are available; 
 5. With that polygon selected, execute in QGIS `qgis_read_chip_tif_files_intersect_selected_reference.py`. This will select the available chips in `chip_source_folder` that intersect the selected feature, and will create copies of those chips in `Input_dir`
-6. In VSCode, execute `split_tifs.py` to create the `before` and `after` chips in folders `Test_im_pathA` and `Test_im_pathB`;
+6. In VSCode, set the working directory as `repos\mrs_bacd_2025\BACDM_9feb_2026`. Execute `python split_tifs.py` to create the `before` and `after` chips in folders `Test_im_pathA` and `Test_im_pathB`;
 7. In VSCode, execute `test.py` to apply BADCM and obtain the prediction;
 8. In QGIS, execute `qgis_load_before_after_prediction.py` to clear the current project and create a new one with layers `before`, `after`, and `predict`;
 9. In QGIS, execute `qgis_read_reference_data_set_and_CCD_vector.py`. Set `ADD_CCD_VECTOR_LAYER=False` if you wish and set `CLEAR=False` to add the reference layer  to the existing layers `before`, `after`, and `predict`.
