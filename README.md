@@ -15,8 +15,9 @@ To test locally the results of BADCM over a collection of 16-band chips, and for
   ```
 working_dir = r"C:\Users\mlc\Downloads\temp\test_tif_to_hdf5"
 suffix_test_files = "TNE_buf_322" # around buffer_id=...(BDR_expanded_v0)
-# where 16 bands chips are stored
-Input_dir =  os.path.join(working_dir, "chips", "all", suffix_test_files)
+# where 16 bands chips are stored. NOte: all paths can be made relative to the folder where the scripts are if they're like  './relative/path'
+chip_source_folder = os.path.join(working_dir, 'chips','all') # all available chips
+Input_dir =  os.path.join(working_dir, "chips", "selected", suffix_test_files) # where the ones for this run are temporarily stored
 # where before and after 6-channel geo-referenced tifs are stored
 Test_im_pathA = os.path.join(working_dir, "chips", "before",suffix_test_files)
 Test_im_pathB = os.path.join(working_dir, "chips", "after",suffix_test_files)
